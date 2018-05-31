@@ -42,7 +42,6 @@ Although we plan on using various models later on, we started off with the inten
 # Hides Warning (Depreciation, etc.)
 import warnings
 warnings.filterwarnings('ignore')
-plt.style.use('ggplot')
 ```
 
 
@@ -53,6 +52,7 @@ plt.style.use('ggplot')
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 import seaborn as sns
 
 # Statistical Exploration Library
@@ -65,6 +65,7 @@ from sklearn import decomposition
 from sklearn import preprocessing
 
 # Modeling
+import xgboost as xgb
 from sklearn import linear_model
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import model_selection
@@ -75,6 +76,12 @@ from sklearn.metrics import make_scorer
 import preprocessing as PRE
 import modeling as MOD
 ```
+
+    /Users/mahn/anaconda3/lib/python3.6/site-packages/sklearn/cross_validation.py:41: DeprecationWarning: This module was deprecated in version 0.18 in favor of the model_selection module into which all the refactored classes and functions are moved. Also note that the interface of the new CV iterators are different from that of this module. This module will be removed in 0.20.
+      "This module will be removed in 0.20.", DeprecationWarning)
+    /Users/mahn/anaconda3/lib/python3.6/site-packages/sklearn/grid_search.py:42: DeprecationWarning: This module was deprecated in version 0.18 in favor of the model_selection module into which all the refactored classes and functions are moved. This module will be removed in 0.20.
+      DeprecationWarning)
+
 
 
 ```python
@@ -594,7 +601,7 @@ MOD.score(pred, test_rf_l)
 
 
 
-    0.14270877809475699
+    0.15456670394713753
 
 
 
@@ -608,11 +615,11 @@ sorted(zip(map(lambda x: round(x, 4), rf_num.feature_importances_), train_rf_i.c
 
 
 
-    [(0.52710000000000001, 'OverallQual'),
-     (0.1285, 'GrLivArea'),
-     (0.0441, 'TotalBsmtSF'),
-     (0.041399999999999999, 'GarageCars'),
-     (0.034299999999999997, 'BsmtFinSF1')]
+    [(0.53500000000000003, 'OverallQual'),
+     (0.1353, 'GrLivArea'),
+     (0.055, 'TotalBsmtSF'),
+     (0.038800000000000001, 'YearBuilt'),
+     (0.032800000000000003, 'GarageCars')]
 
 
 
@@ -952,43 +959,57 @@ params_ridge = {'alpha':(0.00001, 0.00005, 0.0001, 0.0005),
 
 
 ```python
+# Extreme Gradient Boosting
+xgboost_grid = xgb.XGBRegressor()
+params_xgboost = {'max_depth': (2, 3, 4),
+                  'n_estimators': (100, 125),
+                  'min_child_weight': (2, 3, 4),
+                  'learning_rate': (0.1, 0.2)
+                  }
+```
+
+
+```python
 # Get best hyperparameters for each model
 rf = get_params(rf_grid, params_rf, train_i, train_l)
 lasso = get_params(lasso_grid, params_lasso, train_i, train_l)
 ridge = get_params(ridge_grid, params_ridge, train_i, train_l)
+xgboost = get_params(xgboost_grid, params_xgboost, train_i, train_l)
 
 # Make new models using best hyperparameters
 rf_base = RandomForestRegressor(**rf)
 lasso_base = linear_model.Lasso(**lasso)
 ridge_base = linear_model.Ridge(**ridge)
+xgboost_base = xgb.XGBRegressor(**xgboost)
 ```
 
-#### 3. Make predictions on training set using base models
+__3. Train base models__
 
 
 ```python
-# Fit new base models to training set
 rf_base.fit(train_i, train_l)
 lasso_base.fit(train_i, train_l)
 ridge_base.fit(train_i, train_l)
-
-# Predict on training set
-train1 = pd.DataFrame(rf_base.predict(train_i))
-train2 = pd.DataFrame(lasso_base.predict(train_i))
-train3 = pd.DataFrame(ridge_base.predict(train_i))
-
-# Turn predictions into an "input" df for grid search on meta model
-train_stack = pd.concat([train1, train2, train3], axis=1)
+xgboost_base.fit(train_i, train_l)
 ```
 
-#### 4. Apply 5-fold grid search on predictions to find meta model hyperparameters
+
+
+
+    XGBRegressor(base_score=0.5, booster='gbtree', colsample_bylevel=1,
+           colsample_bytree=1, gamma=0, learning_rate=0.2, max_delta_step=0,
+           max_depth=2, min_child_weight=4, missing=None, n_estimators=125,
+           n_jobs=1, nthread=None, objective='reg:linear', random_state=0,
+           reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
+           silent=True, subsample=1)
+
+
+
+__4. Create meta model using Ridge params__
 
 
 ```python
-# Choose ridge regression as meta model
-# Grid search meta model using the "input" df from Step 3
-stack = linear_model.Ridge()
-meta_model = linear_model.Ridge(**get_params(stack, params_ridge, train_i, train_l))
+meta_model = linear_model.Ridge(**ridge)
 ```
 
 #### 5. Make predictions on validation set using base models
@@ -999,12 +1020,13 @@ meta_model = linear_model.Ridge(**get_params(stack, params_ridge, train_i, train
 cv1 = pd.DataFrame(rf_base.predict(cv_i))
 cv2 = pd.DataFrame(lasso_base.predict(cv_i))
 cv3 = pd.DataFrame(ridge_base.predict(cv_i))
+cv4 = pd.DataFrame(xgboost_base.predict(cv_i))
 
 # Turn predictions into an "input" dataframe for training meta model
-cv_stack = pd.concat([cv1, cv2, cv3], axis=1)
+cv_stack = pd.concat([cv1, cv2, cv3, cv4], axis=1)
 ```
 
-#### 6. Train meta model on validation set
+#### 6. Train meta model on predicted validation set
 
 
 ```python
@@ -1016,7 +1038,7 @@ meta_model.fit(cv_stack, cv_l)
 
 
     Ridge(alpha=0.0005, copy_X=True, fit_intercept=True, max_iter=None,
-       normalize=True, random_state=None, solver='auto', tol=0.001)
+       normalize=False, random_state=None, solver='auto', tol=0.001)
 
 
 
@@ -1028,21 +1050,25 @@ meta_model.fit(cv_stack, cv_l)
 test1 = pd.DataFrame(rf_base.predict(test_i))
 test2 = pd.DataFrame(lasso_base.predict(test_i))
 test3 = pd.DataFrame(ridge_base.predict(test_i))
+test4 = pd.DataFrame(xgboost_base.predict(test_i))
 
 # Turn predictions into an "input" df for final testing on meta model
-test_stack = pd.concat([test1,test2,test3], axis=1)
+test_stack = pd.concat([test1,test2,test3, test4], axis=1)
 ```
 
 
 ```python
 # RandomForest, Lasso, Ridge final tests
-[final_score(model, test_i, test_l) for model in [rf_base, lasso_base, ridge_base]]
+[final_score(model, test_i, test_l) for model in [rf_base, lasso_base, ridge_base, xgboost_base]]
 ```
 
 
 
 
-    [0.14867912511662018, 0.11675789637271335, 0.1411663423093806]
+    [0.14674438828537095,
+     0.13193378276755388,
+     0.13206580688249686,
+     0.14624808124018829]
 
 
 
@@ -1055,7 +1081,7 @@ final_score(meta_model, test_stack, test_l)
 
 
 
-    0.13056665874636053
+    0.12575316197084976
 
 
 
@@ -1080,7 +1106,7 @@ plt.show()
 ```
 
 
-![png](output_113_0.png)
+![png](output_114_0.png)
 
 
 
@@ -1090,7 +1116,7 @@ plt.show()
 ```
 
 
-![png](output_114_0.png)
+![png](output_115_0.png)
 
 
 The model assumptions of normal residuals seems good. There does appear to be a slight left skew, but considering we are only predicting on a few hundred observations, this should not be too big of a deal.  
@@ -1105,7 +1131,7 @@ np.power(np.mean(np.square(np.exp(meta_model.predict(test_stack)) - np.exp(test_
 
 
 
-    24574.845614675203
+    20732.162585952276
 
 
 

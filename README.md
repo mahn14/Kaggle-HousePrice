@@ -3,7 +3,7 @@
 
 Project 1 for GWU: Data Analytics Boot Camp  
 Michael Ahn  
-This project began as an independent study of machine learning and modeling but was incorporated into an open ended assignment through GWU's Certification course. While parts of this project was originally worked on by Salil Deshpande and Sam Timura, all of their code has been replaced by original work. 
+This project began as an independent study of machine learning and modeling but was incorporated into an open ended assignment through GWU's Certification course. While parts of this project was originally worked on with Salil Deshpande and Sam Timura, the code below is original work. 
 
 __INTRODUCTION__  
 Predictive modeling is a difficult task. While there are myriads of resources available to understand both the heuristic reasoning and mathematical derivations of concepts used in models such as linear regression, it is yet another challenge to put them together in practical use.  

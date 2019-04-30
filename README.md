@@ -1,14 +1,12 @@
 
 # Kaggle: House Price Regression
 
-Project 1 for GWU: Data Analytics Boot Camp  
 Michael Ahn  
-This project began as an independent study of machine learning and modeling but was incorporated into an open ended assignment through GWU's Certification course. While parts of this project was originally worked on with Salil Deshpande and Sam Timura, the code below is original work. 
 
 __INTRODUCTION__  
 Predictive modeling is a difficult task. While there are myriads of resources available to understand both the heuristic reasoning and mathematical derivations of concepts used in models such as linear regression, it is yet another challenge to put them together in practical use.  
 
-After working on a few toy problems to learn Python, I thought it would be worthwhile to construct this notebook in a format that organizes my thought processes behind each step of this project, which would in turn act as a presentation for those who are also in the beginning steps of becoming a machine learner, data scientist, etc.  
+After working on a few toy problems to learn Python (see Sharpestminds repo), I thought it would be worthwhile to construct this notebook in a format that organizes my thought processes behind each step of this project, which would in turn act as a presentation for those who are also in the beginning steps of becoming a machine learner, data scientist, etc.  
 
 __CREDIT__  
 During my initial study of python and ML, I came across Kaggle as a goldmine for resources. I immediately started off looking at various kernels, moved towards practicing python, and then came back to complete this project.  
